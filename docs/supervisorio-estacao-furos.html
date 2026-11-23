@@ -1,0 +1,754 @@
+<title>Supervisório Estação de Furos</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: coluna única de leitura (até 1080px), mockups em largura total, tabelas com rolagem própria */
+:root{
+  --bg:#F3F4F5; --surface:#FFFFFF; --sunk:#E8EAEC; --fg:#1C2126; --muted:#5B636B; --line:#D3D7DB;
+  --accent:#1F5F8B; --accent-soft:#DCE8F1;
+  --ok:#2E7D4F; --warn:#B7791F; --crit:#B3261E; --low:#2B6CB0;
+  --font-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-head:"IBM Plex Sans Condensed","Arial Narrow",system-ui,sans-serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#15191D; --surface:#1D2227; --sunk:#262C32; --fg:#E4E7EA; --muted:#9AA3AC; --line:#333B43;
+  --accent:#7DB3DA; --accent-soft:#1E3344; --ok:#5DBB85; --warn:#E0A84A; --crit:#EF6B60; --low:#6FA8E6; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#15191D; --surface:#1D2227; --sunk:#262C32; --fg:#E4E7EA; --muted:#9AA3AC; --line:#333B43;
+  --accent:#7DB3DA; --accent-soft:#1E3344; --ok:#5DBB85; --warn:#E0A84A; --crit:#EF6B60; --low:#6FA8E6; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--font-body);font-size:15px;line-height:1.55}
+.wrap{max-width:1080px;margin:0 auto;padding-block:32px 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:44px}
+h1,h2,h3{font-family:var(--font-head);text-wrap:balance;margin:0;line-height:1.15}
+h1{font-size:clamp(28px,4.4vw,42px);font-weight:700;letter-spacing:-.01em}
+h2{font-size:26px;font-weight:600}
+h3{font-size:18px;font-weight:600}
+p{margin:0;max-width:68ch}
+.eyebrow{font-family:var(--font-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+.lead{color:var(--muted);font-size:16px}
+section{display:flex;flex-direction:column;gap:16px}
+code,.mono{font-family:var(--font-mono);font-size:.9em}
+code{background:var(--sunk);padding:1px 5px;border-radius:3px}
+pre{background:var(--sunk);border:1px solid var(--line);border-radius:6px;padding:14px 16px;overflow-x:auto;font-family:var(--font-mono);font-size:13px;line-height:1.5;margin:0}
+.head{display:flex;flex-direction:column;gap:12px}
+.meta{display:flex;flex-wrap:wrap;gap:8px 20px;color:var(--muted);font-size:13px;font-family:var(--font-mono)}
+
+/* tabela */
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:6px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--font-head);font-weight:600;font-size:13px;letter-spacing:.03em;text-transform:uppercase;color:var(--muted);background:var(--sunk)}
+tr:last-child td{border-bottom:0}
+td.num{font-variant-numeric:tabular-nums;white-space:nowrap}
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;padding:2px 9px;border-radius:999px;white-space:nowrap;border:1px solid currentColor}
+.pill::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+.p-crit{color:var(--crit)} .p-warn{color:var(--warn)} .p-ok{color:var(--ok)} .p-mute{color:var(--muted)}
+.new{font-family:var(--font-mono);font-size:11px;color:var(--warn);font-weight:500}
+
+/* mockups */
+.tabs{display:flex;flex-wrap:wrap;gap:6px}
+.tab{font:inherit;font-size:14px;font-weight:500;padding:7px 14px;border-radius:6px;border:1px solid var(--line);background:var(--surface);color:var(--fg);cursor:pointer}
+.tab[aria-selected="true"]{background:var(--accent);border-color:var(--accent);color:var(--surface)}
+.tab:focus-visible,.check input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.screen{border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#C9CDD1}
+.screen svg{display:block;width:100%;height:auto}
+.cap{font-size:13px;color:var(--muted)}
+.notes{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+.note{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:12px 14px;font-size:14px;min-width:0}
+.note b{display:block;font-family:var(--font-head);font-size:15px;margin-bottom:2px}
+
+/* roteiro */
+ol.steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px;counter-reset:s}
+ol.steps>li{counter-increment:s;background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:12px 14px 12px 56px;position:relative}
+ol.steps>li::before{content:counter(s);position:absolute;left:14px;top:12px;width:28px;height:28px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font-family:var(--font-head);font-weight:700;display:grid;place-items:center}
+.steps h3{margin-bottom:6px}
+.check{display:flex;gap:8px;align-items:flex-start;font-size:14px;padding:3px 0}
+.check input{margin-top:4px;accent-color:var(--accent)}
+.check.done span{color:var(--muted);text-decoration:line-through}
+.crit-tag{font-family:var(--font-mono);font-size:11px;color:var(--muted);margin-left:6px}
+.progress{font-family:var(--font-mono);font-size:13px;color:var(--muted)}
+details{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:10px 14px}
+details>summary{cursor:pointer;font-family:var(--font-head);font-weight:600;font-size:16px}
+details[open]>summary{margin-bottom:10px}
+details>*+*{margin-top:10px}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+.two>*{min-width:0}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+
+<header class="head">
+  <span class="eyebrow">ECAA02 · Automação e Supervisórios II · Grupo 5</span>
+  <h1>Supervisório da Estação de Furos</h1>
+  <p class="lead">O que existe hoje no projeto, o que falta para cada critério da rubrica, como as telas podem ficar e a ordem para implementar no E3.</p>
+  <div class="meta"><span>Grupo5_Furo.prj · Estação_furos.lib</span><span>Driver GE SNP</span><span>Análise de 23/11/2026</span></div>
+</header>
+
+<!-- ========== SITUAÇÃO ========== -->
+<section>
+  <span class="eyebrow">Atualizado em 23/11/2026</span>
+  <h2>Onde o projeto está</h2>
+  <p>Comandos, tags, painel de sinais, XObject e alarmes estão prontos. O próximo bloco é o banco de dados com histórico, consulta e gráfico, que completa a maior parte do critério 3. Usuários e permissões ficam para o fim, por decisão do grupo.</p>
+  <div class="tbl"><table>
+    <thead><tr><th>Critério</th><th>Peso</th><th>Pronto</th><th>Falta</th><th>Situação</th></tr></thead>
+    <tbody>
+      <tr><td><b>1. Telas e variáveis</b></td><td class="num">20%</td><td>Botões funcionando, 20 tags criados, painel de sinais com XControl, contadores e taxa de peças não furadas</td><td>Animação da furadeira, trava e haste; intertravamentos com <code>Enabled</code>; limpeza da tela</td><td><span class="pill p-warn">em andamento</span></td></tr>
+      <tr><td><b>2. Telas e quadros, usuários, galeria</b></td><td class="num">10%</td><td>Quadro1 com Superior, Central e Inferior; navegação; biblioteca de XControls</td><td>Usuários e permissões (por último)</td><td><span class="pill p-warn">2 de 3</span></td></tr>
+      <tr><td><b>3. Alarmes, históricos, consultas, gráficos, relatórios</b></td><td class="num">20%</td><td>Alarmes: emergência (Alta) e taxa de peças não furadas com limites de 10 % e 20 %, com reconhecimento</td><td>Histórico, consulta, gráfico, relatório</td><td><span class="pill p-warn">1 de 5</span></td></tr>
+      <tr><td><b>4. Scripts, XControls, XObjects, fórmulas</b></td><td class="num">10%</td><td>Scripts dos botões e navegação; XControls Botao e TagsControle; XObject <code>ControleProducao</code></td><td>Fórmula (receita)</td><td><span class="pill p-warn">3 de 4</span></td></tr>
+      <tr><td><b>5. Demonstração</b></td><td class="num">20%</td><td>Cenário de alarme definido: emergência</td><td>Ensaio completo no laboratório</td><td><span class="pill p-mute">no lab</span></td></tr>
+      <tr><td><b>6. Arguição</b></td><td class="num">20%</td><td></td><td>Divisão por área e argumentos de IHM</td><td><span class="pill p-mute">individual</span></td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- ========== MOCKUPS ========== -->
+<section>
+  <h2>Como as telas podem ficar</h2>
+  <p>Os mockups seguem o estilo de IHM de alto desempenho (ISA-101): fundo cinza, equipamento em tons neutros e cor reservada para estado anormal. Isso também serve de argumento na arguição. Os valores mostrados são exemplos de um turno.</p>
+  <div class="tabs" role="tablist" aria-label="Telas">
+    <button class="tab" role="tab" id="t-sin" aria-selected="true" aria-controls="v-sin">Sinótico</button>
+    <button class="tab" role="tab" id="t-alm" aria-selected="false" aria-controls="v-alm">Alarmes</button>
+    <button class="tab" role="tab" id="t-his" aria-selected="false" aria-controls="v-his">Histórico e gráfico</button>
+    <button class="tab" role="tab" id="t-rel" aria-selected="false" aria-controls="v-rel">Relatório</button>
+    <button class="tab" role="tab" id="t-usr" aria-selected="false" aria-controls="v-usr">Usuários e receitas</button>
+  </div>
+
+  <!-- SINÓTICO -->
+  <div id="v-sin" role="tabpanel" aria-labelledby="t-sin" class="mock">
+    <div class="screen">
+<svg viewBox="0 0 1280 720" font-family="IBM Plex Sans, Segoe UI, Arial, sans-serif" role="img" aria-label="Mockup da tela sinótica">
+  <rect width="1280" height="720" fill="#D4D7DA"/>
+  <!-- cabeçalho do quadro -->
+  <rect width="1280" height="56" fill="#3A4148"/>
+  <text x="20" y="35" fill="#F1F3F4" font-size="20" font-weight="600">Estação de Furos</text>
+  <text x="196" y="35" fill="#AEB6BD" font-size="14">Grupo 5 · Sinótico</text>
+  <rect x="380" y="14" width="150" height="28" rx="14" fill="#4B535B"/><circle cx="398" cy="28" r="6" fill="#F1F3F4"/><text x="412" y="33" fill="#F1F3F4" font-size="13" font-weight="600">AUTO · Furando</text>
+  <rect x="542" y="14" width="118" height="28" rx="14" fill="#4B535B"/><circle cx="560" cy="28" r="6" fill="#7FCB9A"/><text x="574" y="33" fill="#F1F3F4" font-size="13">CLP online</text>
+  <rect x="676" y="12" width="400" height="32" rx="4" fill="#E6B54A"/><rect x="684" y="20" width="16" height="16" fill="#3A2A05" transform="rotate(45 692 28)"/><text x="710" y="33" fill="#2A1F05" font-size="13" font-weight="600">MÉDIA · Taxa de refugo acima de 10 % · 08:05</text>
+  <text x="1100" y="25" fill="#F1F3F4" font-size="13">operador1</text><text x="1100" y="42" fill="#AEB6BD" font-size="12">Operador</text>
+  <text x="1262" y="34" fill="#F1F3F4" font-size="15" text-anchor="end" font-family="IBM Plex Mono, Consolas, monospace">10:42</text>
+
+  <!-- área de processo -->
+  <rect x="16" y="72" width="820" height="576" rx="6" fill="#DFE1E3" stroke="#B8BDC2"/>
+  <text x="32" y="98" fill="#3A4148" font-size="14" font-weight="600">MESA ROTATIVA</text>
+  <!-- setas de sentido -->
+  <path d="M 262 230 A 200 200 0 0 1 400 168" fill="none" stroke="#9AA1A8" stroke-width="2" stroke-dasharray="6 6"/>
+  <path d="M 538 230 A 200 200 0 0 1 600 370" fill="none" stroke="#9AA1A8" stroke-width="2" stroke-dasharray="6 6"/>
+  <!-- mesa -->
+  <circle cx="400" cy="370" r="180" fill="#B9BEC3" stroke="#6E757C" stroke-width="2"/>
+  <circle cx="400" cy="370" r="14" fill="#6E757C"/>
+  <!-- posições -->
+  <circle cx="400" cy="250" r="48" fill="#4A5157" stroke="#2F353A" stroke-width="2"/>
+  <circle cx="400" cy="250" r="10" fill="#B9BEC3"/>
+  <circle cx="520" cy="370" r="48" fill="#E4E6E8" stroke="#8A9197" stroke-width="2"/>
+  <circle cx="400" cy="490" r="48" fill="#E4E6E8" stroke="#8A9197" stroke-width="2"/>
+  <circle cx="280" cy="370" r="48" fill="#E4E6E8" stroke="#8A9197" stroke-width="2"/>
+  <text x="400" y="320" text-anchor="middle" fill="#2F353A" font-size="12" font-weight="600">FURAÇÃO</text>
+  <text x="520" y="438" text-anchor="middle" fill="#2F353A" font-size="12" font-weight="600">TESTE</text>
+  <text x="400" y="558" text-anchor="middle" fill="#2F353A" font-size="12" font-weight="600">SAÍDA</text>
+  <text x="280" y="438" text-anchor="middle" fill="#2F353A" font-size="12" font-weight="600">ENTRADA</text>
+  <!-- entrada e sensor presença -->
+  <line x1="120" y1="370" x2="226" y2="370" stroke="#4A5157" stroke-width="3"/><path d="M226 362 L240 370 L226 378 Z" fill="#4A5157"/>
+  <rect x="120" y="330" width="30" height="22" rx="3" fill="#4A5157"/><text x="135" y="320" text-anchor="middle" fill="#3A4148" font-size="11">%I16</text>
+  <text x="96" y="400" fill="#3A4148" font-size="12">Presença: não</text>
+  <!-- saída -->
+  <line x1="400" y1="540" x2="400" y2="610" stroke="#4A5157" stroke-width="3"/><path d="M392 610 L400 624 L408 610 Z" fill="#4A5157"/>
+  <!-- furadeira -->
+  <rect x="376" y="110" width="48" height="70" rx="4" fill="#4A5157"/>
+  <rect x="390" y="180" width="20" height="18" fill="#2F353A"/>
+  <line x1="400" y1="198" x2="400" y2="232" stroke="#2F353A" stroke-width="4"/>
+  <text x="438" y="128" fill="#2F353A" font-size="12" font-weight="600">Furadeira  ligada</text>
+  <text x="438" y="146" fill="#3A4148" font-size="11">Descendo (%Q3)</text>
+  <!-- fim de curso furadeira -->
+  <rect x="340" y="116" width="22" height="10" fill="#E4E6E8" stroke="#6E757C"/><text x="334" y="125" text-anchor="end" fill="#3A4148" font-size="10">%I10</text>
+  <rect x="340" y="200" width="22" height="10" fill="#4A5157" stroke="#2F353A"/><text x="334" y="209" text-anchor="end" fill="#3A4148" font-size="10">%I11</text>
+  <!-- trava -->
+  <rect x="456" y="242" width="70" height="16" fill="#6E757C"/><rect x="440" y="246" width="18" height="8" fill="#2F353A"/>
+  <text x="532" y="246" fill="#2F353A" font-size="12" font-weight="600">Trava</text><text x="532" y="262" fill="#3A4148" font-size="11">travada (%I15)</text>
+  <!-- teste -->
+  <rect x="606" y="300" width="22" height="56" fill="#E4E6E8" stroke="#6E757C"/><line x1="617" y1="356" x2="617" y2="378" stroke="#6E757C" stroke-width="3"/>
+  <text x="640" y="318" fill="#2F353A" font-size="12" font-weight="600">Haste de teste</text><text x="640" y="334" fill="#3A4148" font-size="11">em cima (%I13 e %Q5 off)</text>
+
+  <!-- painel de sinais -->
+  <rect x="700" y="440" width="120" height="196" rx="4" fill="#E8EAEC" stroke="#B8BDC2"/>
+  <text x="712" y="460" fill="#3A4148" font-size="11" font-weight="600">SINAIS DO CLP</text>
+  <g font-size="10.5" fill="#2F353A">
+    <circle cx="716" cy="477" r="5" fill="#4A5157"/><text x="728" y="481">I8 Emerg. OK</text>
+    <circle cx="716" cy="495" r="5" fill="#E4E6E8" stroke="#6E757C"/><text x="728" y="499">I9 Mesa</text>
+    <circle cx="716" cy="513" r="5" fill="#E4E6E8" stroke="#6E757C"/><text x="728" y="517">I10 Fur. cima</text>
+    <circle cx="716" cy="531" r="5" fill="#4A5157"/><text x="728" y="535">I11 Fur. baixo</text>
+    <circle cx="716" cy="549" r="5" fill="#E4E6E8" stroke="#6E757C"/><text x="728" y="553">I13 Teste baixo</text>
+    <circle cx="716" cy="567" r="5" fill="#4A5157"/><text x="728" y="571">I15 Travada</text>
+    <circle cx="716" cy="585" r="5" fill="#E4E6E8" stroke="#6E757C"/><text x="728" y="589">I16 Presença</text>
+    <circle cx="716" cy="603" r="5" fill="#4A5157"/><text x="728" y="607">Q3 Desce fur.</text>
+    <circle cx="716" cy="621" r="5" fill="#4A5157"/><text x="728" y="625">Q6 Trava</text>
+  </g>
+
+  <!-- coluna direita: comando -->
+  <rect x="852" y="72" width="412" height="296" rx="6" fill="#DFE1E3" stroke="#B8BDC2"/>
+  <text x="868" y="98" fill="#3A4148" font-size="14" font-weight="600">COMANDO</text>
+  <text x="868" y="128" fill="#3A4148" font-size="12">Modo</text>
+  <rect x="868" y="136" width="186" height="36" rx="4" fill="#F4F5F6" stroke="#8A9197"/>
+  <rect x="870" y="138" width="91" height="32" rx="3" fill="#4A5157"/><text x="915" y="159" text-anchor="middle" fill="#F4F5F6" font-size="13" font-weight="600">AUTO</text>
+  <text x="1007" y="159" text-anchor="middle" fill="#6E757C" font-size="13">MANUAL</text>
+  <text x="1068" y="152" fill="#5B636B" font-size="11">Manual exige</text><text x="1068" y="166" fill="#5B636B" font-size="11">login Manutenção</text>
+  <g font-size="14" font-weight="600" text-anchor="middle">
+    <rect x="868" y="190" width="120" height="48" rx="4" fill="#F4F5F6" stroke="#4A5157" stroke-width="1.5"/><text x="928" y="219" fill="#2F353A">START</text>
+    <rect x="1004" y="190" width="120" height="48" rx="4" fill="#F4F5F6" stroke="#4A5157" stroke-width="1.5"/><text x="1064" y="219" fill="#2F353A">QUIT</text>
+    <rect x="1140" y="190" width="108" height="48" rx="4" fill="#B3261E"/><text x="1194" y="219" fill="#FFFFFF">STOP</text>
+    <rect x="868" y="252" width="120" height="48" rx="4" fill="#E4E6E8" stroke="#B8BDC2" stroke-dasharray="4 3"/><text x="928" y="281" fill="#9AA1A8">POSITION</text>
+    <rect x="1004" y="252" width="120" height="48" rx="4" fill="#F4F5F6" stroke="#4A5157" stroke-width="1.5"/><text x="1064" y="281" fill="#2F353A">RESET</text>
+  </g>
+  <text x="868" y="322" fill="#5B636B" font-size="11">Position desabilitado em AUTO. Reset pede confirmação e grupo Supervisor.</text>
+  <text x="868" y="340" fill="#5B636B" font-size="11">Stop sempre habilitado.</text>
+
+  <!-- produção -->
+  <rect x="852" y="384" width="412" height="264" rx="6" fill="#DFE1E3" stroke="#B8BDC2"/>
+  <text x="868" y="410" fill="#3A4148" font-size="14" font-weight="600">PRODUÇÃO DO TURNO</text>
+  <g font-family="IBM Plex Mono, Consolas, monospace">
+    <text x="868" y="440" fill="#5B636B" font-size="12" font-family="IBM Plex Sans, Arial">Peças furadas</text><text x="1050" y="442" fill="#1C2126" font-size="24" text-anchor="end">37</text><text x="1056" y="442" fill="#5B636B" font-size="12">peças</text>
+    <text x="868" y="476" fill="#5B636B" font-size="12" font-family="IBM Plex Sans, Arial">Não furadas</text><text x="1050" y="478" fill="#1C2126" font-size="24" text-anchor="end">4</text><text x="1056" y="478" fill="#5B636B" font-size="12">peças</text>
+    <text x="868" y="512" fill="#5B636B" font-size="12" font-family="IBM Plex Sans, Arial">Total</text><text x="1050" y="514" fill="#1C2126" font-size="24" text-anchor="end">41</text><text x="1056" y="514" fill="#5B636B" font-size="12">peças</text>
+    <text x="868" y="548" fill="#5B636B" font-size="12" font-family="IBM Plex Sans, Arial">Taxa de refugo</text><text x="1050" y="550" fill="#1C2126" font-size="24" text-anchor="end">9,8</text><text x="1056" y="550" fill="#5B636B" font-size="12">%</text>
+    <text x="868" y="584" fill="#5B636B" font-size="12" font-family="IBM Plex Sans, Arial">Tempo de ciclo</text><text x="1050" y="586" fill="#1C2126" font-size="24" text-anchor="end">14,2</text><text x="1056" y="586" fill="#5B636B" font-size="12">s</text>
+  </g>
+  <!-- barra meta -->
+  <text x="868" y="616" fill="#5B636B" font-size="12">Meta 60 peças</text>
+  <rect x="868" y="624" width="380" height="10" rx="2" fill="#F4F5F6" stroke="#B8BDC2"/>
+  <rect x="868" y="624" width="260" height="10" rx="2" fill="#4A5157"/>
+  <!-- barra refugo com limites -->
+  <line x1="1120" y1="534" x2="1248" y2="534" stroke="#B8BDC2" stroke-width="6"/>
+  <line x1="1120" y1="534" x2="1182" y2="534" stroke="#4A5157" stroke-width="6"/>
+  <line x1="1184" y1="526" x2="1184" y2="542" stroke="#B7791F" stroke-width="2"/><line x1="1248" y1="526" x2="1248" y2="542" stroke="#B3261E" stroke-width="2"/>
+  <text x="1184" y="556" text-anchor="middle" fill="#5B636B" font-size="9">10%</text><text x="1248" y="556" text-anchor="end" fill="#5B636B" font-size="9">20%</text>
+
+  <!-- menu inferior -->
+  <rect y="664" width="1280" height="56" fill="#3A4148"/>
+  <g font-size="14" fill="#F1F3F4" text-anchor="middle">
+    <rect x="16" y="672" width="150" height="40" rx="4" fill="#5B646C"/><text x="91" y="697" font-weight="600">Sinótico</text>
+    <text x="246" y="697">Alarmes</text><circle cx="290" cy="684" r="9" fill="#E6B54A"/><text x="290" y="688" fill="#2A1F05" font-size="11" font-weight="700">1</text>
+    <text x="400" y="697">Histórico</text>
+    <text x="540" y="697">Relatórios</text>
+    <text x="676" y="697">Receitas</text>
+    <text x="806" y="697">Usuários</text>
+    <text x="1216" y="697">Sair</text>
+  </g>
+</svg>
+    </div>
+    <p class="cap">TelaPrincipal dentro do quadro. Peça na posição de furação, furadeira descendo, trava avançada. Equipamento ligado aparece em cinza escuro, desligado em cinza claro, e o único amarelo é o alarme ativo.</p>
+    <div class="notes">
+      <div class="note"><b>Cabeçalho do quadro</b>Estado da máquina (vem do XObject), comunicação com o CLP, último alarme não reconhecido, usuário logado e hora. Fica fixo em todas as telas.</div>
+      <div class="note"><b>Intertravamentos visíveis</b>Botão desabilitado aparece tracejado. Liga-se <code>Enabled</code> ao modo e ao grupo do usuário em vez de esconder o botão.</div>
+      <div class="note"><b>Unidades e limites</b>Todo valor tem unidade. A barra de refugo mostra os limites de alarme de 10 % e 20 %, que vêm da receita.</div>
+    </div>
+  </div>
+
+  <!-- ALARMES -->
+  <div id="v-alm" role="tabpanel" aria-labelledby="t-alm" class="mock" hidden>
+    <div class="screen">
+<svg viewBox="0 0 1280 720" font-family="IBM Plex Sans, Segoe UI, Arial, sans-serif" role="img" aria-label="Mockup da tela de alarmes">
+  <rect width="1280" height="720" fill="#D4D7DA"/>
+  <rect width="1280" height="56" fill="#3A4148"/>
+  <text x="20" y="35" fill="#F1F3F4" font-size="20" font-weight="600">Estação de Furos</text><text x="196" y="35" fill="#AEB6BD" font-size="14">Grupo 5 · Alarmes</text>
+  <text x="1262" y="34" fill="#F1F3F4" font-size="15" text-anchor="end" font-family="IBM Plex Mono, Consolas, monospace">12:40</text>
+  <!-- resumo -->
+  <g font-size="13">
+    <rect x="16" y="72" width="200" height="64" rx="6" fill="#DFE1E3" stroke="#B8BDC2"/><text x="32" y="96" fill="#5B636B">Ativos não reconhecidos</text><text x="32" y="124" fill="#1C2126" font-size="22" font-family="IBM Plex Mono, monospace">1</text>
+    <rect x="228" y="72" width="200" height="64" rx="6" fill="#DFE1E3" stroke="#B8BDC2"/><text x="244" y="96" fill="#5B636B">Ativos reconhecidos</text><text x="244" y="124" fill="#1C2126" font-size="22" font-family="IBM Plex Mono, monospace">1</text>
+    <rect x="440" y="72" width="200" height="64" rx="6" fill="#DFE1E3" stroke="#B8BDC2"/><text x="456" y="96" fill="#5B636B">Eventos no turno</text><text x="456" y="124" fill="#1C2126" font-size="22" font-family="IBM Plex Mono, monospace">5</text>
+  </g>
+  <!-- filtros -->
+  <g font-size="13">
+    <text x="660" y="96" fill="#3A4148" font-weight="600">Área</text>
+    <rect x="660" y="104" width="90" height="28" rx="14" fill="#4A5157"/><text x="705" y="123" text-anchor="middle" fill="#F4F5F6">Todas</text>
+    <rect x="758" y="104" width="96" height="28" rx="14" fill="#F4F5F6" stroke="#8A9197"/><text x="806" y="123" text-anchor="middle" fill="#2F353A">Processo</text>
+    <rect x="862" y="104" width="90" height="28" rx="14" fill="#F4F5F6" stroke="#8A9197"/><text x="907" y="123" text-anchor="middle" fill="#2F353A">Sistema</text>
+    <rect x="1000" y="100" width="122" height="36" rx="4" fill="#F4F5F6" stroke="#4A5157" stroke-width="1.5"/><text x="1061" y="123" text-anchor="middle" fill="#2F353A" font-weight="600">Reconhecer</text>
+    <rect x="1130" y="100" width="134" height="36" rx="4" fill="#4A5157"/><text x="1197" y="123" text-anchor="middle" fill="#F4F5F6" font-weight="600">Reconhecer todos</text>
+  </g>
+  <!-- tabela E3Alarm -->
+  <rect x="16" y="152" width="1248" height="496" rx="6" fill="#F4F5F6" stroke="#B8BDC2"/>
+  <rect x="16" y="152" width="1248" height="36" rx="6" fill="#C9CDD1"/>
+  <g font-size="12" font-weight="600" fill="#3A4148">
+    <text x="64" y="175">PRIOR.</text><text x="150" y="175">DATA/HORA</text><text x="320" y="175">ÁREA</text><text x="430" y="175">MENSAGEM</text><text x="860" y="175">VALOR</text><text x="960" y="175">ESTADO</text><text x="1110" y="175">OPERADOR</text>
+  </g>
+  <g font-size="13" fill="#1C2126">
+    <!-- linha 1 ativa não reconhecida alta -->
+    <rect x="17" y="189" width="1246" height="44" fill="#F6DCDA"/>
+    <rect x="17" y="189" width="6" height="44" fill="#B3261E"/>
+    <path d="M44 200 L56 222 L32 222 Z" fill="#B3261E"/><text x="64" y="216" fill="#B3261E" font-weight="600">ALTA</text>
+    <text x="150" y="216" font-family="IBM Plex Mono, monospace">23/11 12:31:07</text><text x="320" y="216">Sistema</text><text x="430" y="216" font-weight="600">Falha de comunicação com o CLP</text><text x="860" y="216" font-family="IBM Plex Mono, monospace">1</text><text x="960" y="216" font-weight="600" fill="#B3261E">Ativo · não reconhecido</text><text x="1110" y="216" fill="#5B636B">—</text>
+    <!-- linha 2 ativa reconhecida média -->
+    <rect x="17" y="233" width="6" height="44" fill="#B7791F"/>
+    <rect x="38" y="247" width="14" height="14" fill="#B7791F" transform="rotate(45 45 254)"/><text x="64" y="260" fill="#8A5A14" font-weight="600">MÉDIA</text>
+    <text x="150" y="260" font-family="IBM Plex Mono, monospace">23/11 12:18:40</text><text x="320" y="260">Processo</text><text x="430" y="260">Tempo de ciclo acima de 20 s</text><text x="860" y="260" font-family="IBM Plex Mono, monospace">23,6 s</text><text x="960" y="260">Ativo · reconhecido</text><text x="1110" y="260">operador1</text>
+    <line x1="17" y1="277" x2="1263" y2="277" stroke="#D3D7DB"/>
+    <!-- normalizados -->
+    <g fill="#5B636B">
+    <path d="M44 288 L56 310 L32 310 Z" fill="none" stroke="#B3261E" stroke-width="2"/><text x="64" y="304">ALTA</text>
+    <text x="150" y="304" font-family="IBM Plex Mono, monospace">23/11 12:10:02</text><text x="320" y="304">Processo</text><text x="430" y="304">Emergência acionada</text><text x="860" y="304" font-family="IBM Plex Mono, monospace">0</text><text x="960" y="304">Normalizado</text><text x="1110" y="304">operador1</text>
+    <line x1="17" y1="321" x2="1263" y2="321" stroke="#D3D7DB"/>
+    <rect x="38" y="335" width="14" height="14" fill="none" stroke="#B7791F" stroke-width="2" transform="rotate(45 45 342)"/><text x="64" y="348">MÉDIA</text>
+    <text x="150" y="348" font-family="IBM Plex Mono, monospace">23/11 08:05:51</text><text x="320" y="348">Processo</text><text x="430" y="348">Taxa de refugo acima de 10 %</text><text x="860" y="348" font-family="IBM Plex Mono, monospace">16,7 %</text><text x="960" y="348">Normalizado</text><text x="1110" y="348">operador1</text>
+    <line x1="17" y1="365" x2="1263" y2="365" stroke="#D3D7DB"/>
+    <circle cx="45" cy="386" r="8" fill="none" stroke="#2B6CB0" stroke-width="2"/><text x="64" y="392">BAIXA</text>
+    <text x="150" y="392" font-family="IBM Plex Mono, monospace">23/11 06:02:14</text><text x="320" y="392">Sistema</text><text x="430" y="392">Login de operador1</text><text x="860" y="392" font-family="IBM Plex Mono, monospace">—</text><text x="960" y="392">Evento</text><text x="1110" y="392">operador1</text>
+    </g>
+  </g>
+  <text x="32" y="628" fill="#5B636B" font-size="12">Prioridade com cor e forma: triângulo = alta, losango = média, círculo = baixa. Preenchido = ativo, só contorno = normalizado.</text>
+  <rect y="664" width="1280" height="56" fill="#3A4148"/>
+  <g font-size="14" fill="#F1F3F4" text-anchor="middle">
+    <text x="91" y="697">Sinótico</text>
+    <rect x="171" y="672" width="150" height="40" rx="4" fill="#5B646C"/><text x="246" y="697" font-weight="600">Alarmes</text>
+    <text x="400" y="697">Histórico</text><text x="540" y="697">Relatórios</text><text x="676" y="697">Receitas</text><text x="806" y="697">Usuários</text><text x="1216" y="697">Sair</text>
+  </g>
+</svg>
+    </div>
+    <p class="cap">Exemplo com mais alarmes do que o projeto usa. No projeto ficaram dois: emergência (Alta) e taxa de peças não furadas (Hi 10 % Média, HiHi 20 % Alta). E3Alarm ligado ao Servidor de Alarmes. Os alarmes também vão para o banco de dados, o que alimenta a consulta e o relatório.</p>
+  </div>
+
+  <!-- HISTÓRICO -->
+  <div id="v-his" role="tabpanel" aria-labelledby="t-his" class="mock" hidden>
+    <div class="screen">
+<svg viewBox="0 0 1280 720" font-family="IBM Plex Sans, Segoe UI, Arial, sans-serif" role="img" aria-label="Mockup da tela de histórico e gráfico">
+  <rect width="1280" height="720" fill="#D4D7DA"/>
+  <rect width="1280" height="56" fill="#3A4148"/>
+  <text x="20" y="35" fill="#F1F3F4" font-size="20" font-weight="600">Estação de Furos</text><text x="196" y="35" fill="#AEB6BD" font-size="14">Grupo 5 · Histórico</text>
+  <text x="1262" y="34" fill="#F1F3F4" font-size="15" text-anchor="end" font-family="IBM Plex Mono, Consolas, monospace">14:05</text>
+  <!-- filtro de período -->
+  <g font-size="13">
+    <text x="16" y="90" fill="#3A4148" font-weight="600">Período</text>
+    <rect x="80" y="72" width="170" height="30" rx="4" fill="#F4F5F6" stroke="#8A9197"/><text x="92" y="92" fill="#1C2126" font-family="IBM Plex Mono, monospace">23/11/2026 06:00</text>
+    <text x="262" y="92" fill="#5B636B">até</text>
+    <rect x="290" y="72" width="170" height="30" rx="4" fill="#F4F5F6" stroke="#8A9197"/><text x="302" y="92" fill="#1C2126" font-family="IBM Plex Mono, monospace">23/11/2026 14:00</text>
+    <rect x="472" y="72" width="100" height="30" rx="4" fill="#4A5157"/><text x="522" y="92" text-anchor="middle" fill="#F4F5F6" font-weight="600">Consultar</text>
+    <rect x="584" y="72" width="140" height="30" rx="4" fill="#F4F5F6" stroke="#4A5157"/><text x="654" y="92" text-anchor="middle" fill="#2F353A" font-weight="600">Gerar relatório</text>
+  </g>
+  <!-- legenda -->
+  <g font-size="12" fill="#2F353A">
+    <line x1="900" y1="87" x2="924" y2="87" stroke="#2F353A" stroke-width="3"/><text x="930" y="91">Peças furadas</text>
+    <line x1="1040" y1="87" x2="1064" y2="87" stroke="#B3261E" stroke-width="3" stroke-dasharray="6 3"/><text x="1070" y="91">Não furadas</text>
+  </g>
+  <!-- E3Chart -->
+  <rect x="16" y="116" width="1248" height="330" rx="6" fill="#F4F5F6" stroke="#B8BDC2"/>
+  <g stroke="#DDE0E3" stroke-width="1">
+    <line x1="80" y1="420" x2="1180" y2="420" stroke="#8A9197"/>
+    <line x1="80" y1="360" x2="1180" y2="360"/><line x1="80" y1="300" x2="1180" y2="300"/><line x1="80" y1="240" x2="1180" y2="240"/><line x1="80" y1="180" x2="1180" y2="180"/>
+  </g>
+  <g font-size="11" fill="#5B636B" font-family="IBM Plex Mono, monospace" text-anchor="end">
+    <text x="70" y="424">0</text><text x="70" y="364">10</text><text x="70" y="304">20</text><text x="70" y="244">30</text><text x="70" y="184">40</text>
+  </g>
+  <text x="34" y="150" fill="#5B636B" font-size="11">peças</text>
+  <g font-size="11" fill="#5B636B" font-family="IBM Plex Mono, monospace" text-anchor="middle">
+    <text x="80" y="438">06h</text><text x="217.5" y="438">07h</text><text x="355" y="438">08h</text><text x="492.5" y="438">09h</text><text x="630" y="438">10h</text><text x="767.5" y="438">11h</text><text x="905" y="438">12h</text><text x="1042.5" y="438">13h</text><text x="1180" y="438">14h</text>
+  </g>
+  <path d="M80 420 L217.5 390 L355 354 L492.5 324 L630 294 L767.5 264 L905 252 L1042.5 222 L1180 198 L1180 420 Z" fill="#4A5157" fill-opacity=".10"/>
+  <polyline points="80,420 217.5,390 355,354 492.5,324 630,294 767.5,264 905,252 1042.5,222 1180,198" fill="none" stroke="#2F353A" stroke-width="3"/>
+  <polyline points="80,420 217.5,420 355,414 492.5,414 630,408 767.5,408 905,402 1042.5,402 1180,396" fill="none" stroke="#B3261E" stroke-width="3" stroke-dasharray="6 3"/>
+  <circle cx="1180" cy="198" r="5" fill="#2F353A"/><text x="1190" y="202" font-size="12" fill="#2F353A" font-family="IBM Plex Mono, monospace">37</text>
+  <circle cx="1180" cy="396" r="5" fill="#B3261E"/><text x="1190" y="392" font-size="12" fill="#B3261E" font-family="IBM Plex Mono, monospace">4</text>
+  <text x="905" y="240" font-size="11" fill="#5B636B" text-anchor="middle">parada 12h</text>
+  <!-- E3Browser -->
+  <rect x="16" y="458" width="1248" height="190" rx="6" fill="#F4F5F6" stroke="#B8BDC2"/>
+  <rect x="16" y="458" width="1248" height="30" rx="6" fill="#C9CDD1"/>
+  <g font-size="12" font-weight="600" fill="#3A4148"><text x="32" y="478">E3TIMESTAMP</text><text x="240" y="478">FURADAS (peças)</text><text x="420" y="478">NÃO FURADAS (peças)</text><text x="620" y="478">REFUGO (%)</text><text x="760" y="478">CICLO (s)</text><text x="880" y="478">ESTADO</text></g>
+  <g font-size="12.5" fill="#1C2126" font-family="IBM Plex Mono, monospace">
+    <text x="32" y="510">23/11 13:59:50</text><text x="240" y="510">37</text><text x="420" y="510">4</text><text x="620" y="510">9,8</text><text x="760" y="510">14,2</text><text x="880" y="510" font-family="IBM Plex Sans, Arial">Furando</text>
+    <line x1="17" y1="520" x2="1263" y2="520" stroke="#DDE0E3"/>
+    <text x="32" y="540">23/11 13:00:00</text><text x="240" y="540">33</text><text x="420" y="540">3</text><text x="620" y="540">8,3</text><text x="760" y="540">13,9</text><text x="880" y="540" font-family="IBM Plex Sans, Arial">Aguardando peça</text>
+    <line x1="17" y1="550" x2="1263" y2="550" stroke="#DDE0E3"/>
+    <text x="32" y="570">23/11 12:00:00</text><text x="240" y="570">28</text><text x="420" y="570">3</text><text x="620" y="570">9,7</text><text x="760" y="570">23,6</text><text x="880" y="570" font-family="IBM Plex Sans, Arial">Parado</text>
+    <line x1="17" y1="580" x2="1263" y2="580" stroke="#DDE0E3"/>
+    <text x="32" y="600">23/11 11:00:00</text><text x="240" y="600">26</text><text x="420" y="600">2</text><text x="620" y="600">7,1</text><text x="760" y="600">14,0</text><text x="880" y="600" font-family="IBM Plex Sans, Arial">Testando</text>
+    <line x1="17" y1="610" x2="1263" y2="610" stroke="#DDE0E3"/>
+    <text x="32" y="630">23/11 10:00:00</text><text x="240" y="630">21</text><text x="420" y="630">2</text><text x="620" y="630">8,7</text><text x="760" y="630">14,4</text><text x="880" y="630" font-family="IBM Plex Sans, Arial">Girando mesa</text>
+  </g>
+  <rect y="664" width="1280" height="56" fill="#3A4148"/>
+  <g font-size="14" fill="#F1F3F4" text-anchor="middle">
+    <text x="91" y="697">Sinótico</text><text x="246" y="697">Alarmes</text>
+    <rect x="325" y="672" width="150" height="40" rx="4" fill="#5B646C"/><text x="400" y="697" font-weight="600">Histórico</text>
+    <text x="540" y="697">Relatórios</text><text x="676" y="697">Receitas</text><text x="806" y="697">Usuários</text><text x="1216" y="697">Sair</text>
+  </g>
+</svg>
+    </div>
+    <p class="cap">Uma tela cobre três recursos da rubrica: o histórico (gravação no banco), a consulta (E3Browser filtrado por período) e o gráfico (E3Chart com penas históricas). O botão de relatório usa o mesmo período.</p>
+  </div>
+
+  <!-- RELATÓRIO -->
+  <div id="v-rel" role="tabpanel" aria-labelledby="t-rel" class="mock" hidden>
+    <div class="screen" style="background:#BFC4C9">
+<svg viewBox="0 0 1280 720" font-family="IBM Plex Sans, Segoe UI, Arial, sans-serif" role="img" aria-label="Mockup do relatório de produção">
+  <rect width="1280" height="720" fill="#BFC4C9"/>
+  <rect x="380" y="20" width="520" height="690" fill="#FFFFFF" stroke="#9AA1A8"/>
+  <text x="410" y="64" fill="#1C2126" font-size="20" font-weight="700">Relatório de Produção</text>
+  <text x="410" y="86" fill="#5B636B" font-size="12">Estação de Furação FESTO · Laboratório Indústria 4.0 · UNIFEI</text>
+  <text x="870" y="64" fill="#5B636B" font-size="11" text-anchor="end">Grupo 5</text>
+  <line x1="410" y1="100" x2="870" y2="100" stroke="#1C2126" stroke-width="1.5"/>
+  <g font-size="12" fill="#1C2126">
+    <text x="410" y="124" fill="#5B636B">Período</text><text x="500" y="124" font-family="IBM Plex Mono, monospace">23/11/2026 06:00 a 14:00</text>
+    <text x="410" y="144" fill="#5B636B">Emitido por</text><text x="500" y="144">supervisor1 em 23/11/2026 14:05</text>
+  </g>
+  <!-- totais -->
+  <g font-size="11" fill="#5B636B">
+    <rect x="410" y="160" width="106" height="56" fill="#F1F2F3"/><text x="420" y="178">Furadas</text><text x="420" y="204" font-size="20" fill="#1C2126" font-family="IBM Plex Mono, monospace">37</text>
+    <rect x="528" y="160" width="106" height="56" fill="#F1F2F3"/><text x="538" y="178">Não furadas</text><text x="538" y="204" font-size="20" fill="#1C2126" font-family="IBM Plex Mono, monospace">4</text>
+    <rect x="646" y="160" width="106" height="56" fill="#F1F2F3"/><text x="656" y="178">Refugo</text><text x="656" y="204" font-size="20" fill="#1C2126" font-family="IBM Plex Mono, monospace">9,8 %</text>
+    <rect x="764" y="160" width="106" height="56" fill="#F1F2F3"/><text x="774" y="178">Meta</text><text x="774" y="204" font-size="20" fill="#1C2126" font-family="IBM Plex Mono, monospace">62 %</text>
+  </g>
+  <text x="410" y="244" font-size="13" font-weight="600" fill="#1C2126">Produção por hora</text>
+  <g font-size="11" fill="#1C2126" font-family="IBM Plex Mono, monospace">
+    <rect x="410" y="252" width="460" height="22" fill="#E3E5E7"/>
+    <g font-family="IBM Plex Sans, Arial" font-weight="600"><text x="418" y="267">Hora</text><text x="560" y="267">Furadas</text><text x="660" y="267">Não furadas</text><text x="790" y="267">Refugo</text></g>
+    <text x="418" y="292">06–07</text><text x="560" y="292">5</text><text x="660" y="292">0</text><text x="790" y="292">0,0 %</text>
+    <text x="418" y="314">07–08</text><text x="560" y="314">6</text><text x="660" y="314">1</text><text x="790" y="314">14,3 %</text>
+    <text x="418" y="336">08–09</text><text x="560" y="336">5</text><text x="660" y="336">0</text><text x="790" y="336">0,0 %</text>
+    <text x="418" y="358">09–10</text><text x="560" y="358">5</text><text x="660" y="358">1</text><text x="790" y="358">16,7 %</text>
+    <text x="418" y="380">10–11</text><text x="560" y="380">5</text><text x="660" y="380">0</text><text x="790" y="380">0,0 %</text>
+    <text x="418" y="402">11–12</text><text x="560" y="402">2</text><text x="660" y="402">1</text><text x="790" y="402">33,3 %</text>
+    <text x="418" y="424">12–13</text><text x="560" y="424">5</text><text x="660" y="424">0</text><text x="790" y="424">0,0 %</text>
+    <text x="418" y="446">13–14</text><text x="560" y="446">4</text><text x="660" y="446">1</text><text x="790" y="446">20,0 %</text>
+    <line x1="410" y1="456" x2="870" y2="456" stroke="#1C2126"/>
+    <g font-weight="600"><text x="418" y="474" font-family="IBM Plex Sans, Arial">Total</text><text x="560" y="474">37</text><text x="660" y="474">4</text><text x="790" y="474">9,8 %</text></g>
+  </g>
+  <text x="410" y="510" font-size="13" font-weight="600" fill="#1C2126">Alarmes do período</text>
+  <g font-size="11" fill="#1C2126">
+    <text x="410" y="532" font-family="IBM Plex Mono, monospace">12:31</text><text x="460" y="532">Alta · Falha de comunicação com o CLP · 2 min</text>
+    <text x="410" y="552" font-family="IBM Plex Mono, monospace">12:18</text><text x="460" y="552">Média · Tempo de ciclo acima de 20 s</text>
+    <text x="410" y="572" font-family="IBM Plex Mono, monospace">12:10</text><text x="460" y="572">Alta · Emergência acionada · 1 min</text>
+    <text x="410" y="592" font-family="IBM Plex Mono, monospace">08:05</text><text x="460" y="592">Média · Taxa de refugo acima de 10 %</text>
+  </g>
+  <line x1="410" y1="660" x2="600" y2="660" stroke="#9AA1A8"/><text x="410" y="676" font-size="10" fill="#5B636B">Responsável pelo turno</text>
+  <text x="870" y="690" font-size="10" fill="#5B636B" text-anchor="end">Página 1 de 1</text>
+  <!-- barra de visualização -->
+  <rect x="20" y="20" width="330" height="140" rx="6" fill="#E6E8EA" stroke="#9AA1A8"/>
+  <text x="36" y="48" font-size="14" font-weight="600" fill="#2F353A">Visualização do E3Reports</text>
+  <text x="36" y="72" font-size="12" fill="#5B636B">Aberto com Application.LoadReport</text>
+  <text x="36" y="90" font-size="12" fill="#5B636B">e PrintPreview, com o período</text>
+  <text x="36" y="108" font-size="12" fill="#5B636B">escolhido na tela de histórico.</text>
+  <text x="36" y="136" font-size="12" fill="#5B636B">Dados vindos do banco (reais).</text>
+</svg>
+    </div>
+    <p class="cap">O relatório lê as mesmas tabelas do histórico e dos alarmes, o que atende ao "relatório com dados reais" do nível Supera.</p>
+  </div>
+
+  <!-- USUÁRIOS -->
+  <div id="v-usr" role="tabpanel" aria-labelledby="t-usr" class="mock" hidden>
+    <div class="two">
+      <div class="screen">
+<svg viewBox="0 0 640 420" font-family="IBM Plex Sans, Segoe UI, Arial, sans-serif" role="img" aria-label="Mockup do login">
+  <rect width="640" height="420" fill="#D4D7DA"/>
+  <rect x="150" y="60" width="340" height="300" rx="8" fill="#F4F5F6" stroke="#8A9197"/>
+  <text x="320" y="108" text-anchor="middle" font-size="20" font-weight="600" fill="#1C2126">Entrar no supervisório</text>
+  <text x="180" y="146" font-size="13" fill="#3A4148">Usuário</text>
+  <rect x="180" y="154" width="280" height="36" rx="4" fill="#FFFFFF" stroke="#8A9197"/><text x="192" y="178" font-size="14" fill="#1C2126">manutencao1</text>
+  <text x="180" y="216" font-size="13" fill="#3A4148">Senha</text>
+  <rect x="180" y="224" width="280" height="36" rx="4" fill="#FFFFFF" stroke="#8A9197"/><text x="192" y="248" font-size="16" fill="#1C2126">••••••</text>
+  <rect x="180" y="284" width="280" height="40" rx="4" fill="#4A5157"/><text x="320" y="309" text-anchor="middle" font-size="14" font-weight="600" fill="#F4F5F6">Entrar</text>
+  <text x="320" y="346" text-anchor="middle" font-size="11" fill="#5B636B">Diálogo padrão do E3 via Application.Login(True)</text>
+</svg>
+      </div>
+      <div class="tbl"><table>
+        <thead><tr><th>Ação</th><th>Operador</th><th>Manutenção</th><th>Supervisor</th></tr></thead>
+        <tbody>
+          <tr><td>Start / Stop / Quit</td><td>sim</td><td>sim</td><td>sim</td></tr>
+          <tr><td>Modo Manual e Position</td><td>não</td><td>sim</td><td>sim</td></tr>
+          <tr><td>Reset dos contadores</td><td>não</td><td>não</td><td>sim</td></tr>
+          <tr><td>Reconhecer alarmes</td><td>sim</td><td>sim</td><td>sim</td></tr>
+          <tr><td>Gerar relatório</td><td>sim</td><td>sim</td><td>sim</td></tr>
+          <tr><td>Carregar ou salvar receita</td><td>não</td><td>não</td><td>sim</td></tr>
+        </tbody>
+      </table></div>
+    </div>
+    <h3>Receitas (objeto Fórmula do E3)</h3>
+    <div class="tbl"><table>
+      <thead><tr><th>Conjunto</th><th>Meta de produção</th><th>Limite de refugo (Hi)</th><th>Tempo máximo de ciclo (Hi)</th></tr></thead>
+      <tbody>
+        <tr><td>Padrão</td><td class="num">60 peças</td><td class="num">10 %</td><td class="num">20 s</td></tr>
+        <tr><td>Lote de teste</td><td class="num">10 peças</td><td class="num">30 %</td><td class="num">40 s</td></tr>
+        <tr><td>Alta exigência</td><td class="num">80 peças</td><td class="num">5 %</td><td class="num">15 s</td></tr>
+      </tbody>
+    </table></div>
+    <p class="cap">A Fórmula grava em propriedades do XObject (<code>MetaProducao</code>, <code>LimiteRefugo</code>, <code>TempoMaxCiclo</code>), que não contam no limite de tags,, e os limites dos alarmes analógicos são ligados a esses tags. Assim a receita tem uma finalidade real no projeto, como pede o nível Supera do critério 4.</p>
+  </div>
+</section>
+
+<!-- ========== CORREÇÃO ========== -->
+<section>
+  <span class="eyebrow">Resolvido</span>
+  <h2>Botões XControl</h2>
+  <p>Havia três problemas. A ação "Carregar valor" com o nome <code>Apertado</code> virava <code>Application.SetValue "Apertado"</code>, que não acha tag nenhum. Os links das instâncias eram simples ou não existiam. E o <code>Circulo3</code>, que tinha os scripts, ficava invisível quando <code>Apertado</code> era True, então o MouseUp nunca chegava e o botão ficava preso.</p>
+  <div class="two">
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <h3>Scripts no XControl <code>Botao</code></h3>
+<pre>Sub Circulo3_MouseDown(Button, ShiftState, MouseX, MouseY)
+    Botao.Apertado = True
+End Sub
+
+Sub Circulo3_MouseUp(Button, ShiftState, MouseX, MouseY)
+    Botao.Apertado = False
+End Sub</pre>
+      <p class="cap">Regra que ficou: o objeto que tem o script nunca some nem sai de baixo do cursor. Só o desenho do botão muda.</p>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <h3>Links Bidirecionais na TelaPrincipal</h3>
+      <div class="tbl"><table>
+        <thead><tr><th>Instância</th><th>Propriedade → tag</th></tr></thead>
+        <tbody>
+          <tr><td>Start</td><td><code>Apertado</code> → <code>Driver1.start</code></td></tr>
+          <tr><td>Stop</td><td><code>Apertado</code> → <code>Driver1.stop</code></td></tr>
+          <tr><td>Position</td><td><code>Apertado</code> → <code>Driver1.position</code></td></tr>
+          <tr><td>Reset</td><td><code>Apertado</code> → <code>Driver1.reset</code></td></tr>
+          <tr><td>Quit</td><td><code>Apertado</code> → <code>Driver1.quit</code></td></tr>
+          <tr><td>Chave1</td><td><code>Ligado</code> → <code>Driver1.auto_manual</code></td></tr>
+        </tbody>
+      </table></div>
+    </div>
+  </div>
+</section>
+
+<!-- ========== TAGS ========== -->
+<section>
+  <h2>As 20 variáveis do driver</h2>
+  <p>O limite é de 20 tags, um por sinal. Dos 23 sinais da documentação, saem os 3 que repetem informação de outro tag, e ficam 20. Os códigos N2 vêm do manual do driver GE SNP: 0 = %I, 2 = %Q, 6 = %M (todos em bit) e 20 = %R. Em todos os tags, N1 = 0 (CLP "12345" no GEFANUC.ID) e N4 = 0.</p>
+  <div class="tbl"><table>
+    <thead><tr><th>#</th><th>Tag</th><th>N2</th><th>N3</th><th>Endereço</th><th>Significado</th><th>Na tela</th></tr></thead>
+    <tbody>
+      <tr><td class="num">1</td><td><code>start</code></td><td class="num">6</td><td class="num">300</td><td class="mono">%M300</td><td>Botão Start</td><td>XControl Botao</td></tr>
+      <tr><td class="num">2</td><td><code>stop</code></td><td class="num">6</td><td class="num">301</td><td class="mono">%M301</td><td>Botão Stop</td><td>XControl Botao</td></tr>
+      <tr><td class="num">3</td><td><code>position</code></td><td class="num">6</td><td class="num">302</td><td class="mono">%M302</td><td>Botão Position</td><td>XControl Botao, só em Manual</td></tr>
+      <tr><td class="num">4</td><td><code>quit</code> <span class="new">CRIAR</span></td><td class="num">6</td><td class="num">303</td><td class="mono">%M303</td><td>Botão Quit</td><td>XControl Botao, só em Auto</td></tr>
+      <tr><td class="num">5</td><td><code>reset</code></td><td class="num">6</td><td class="num">304</td><td class="mono">%M304</td><td>Botão Reset</td><td>XControl Botao, só Supervisor</td></tr>
+      <tr><td class="num">6</td><td><code>auto_manual</code></td><td class="num">6</td><td class="num">305</td><td class="mono">%M305</td><td>Chave Auto/Manual</td><td>XControl Chave</td></tr>
+      <tr><td class="num">7</td><td><code>emergencia</code> <span class="new">CRIAR</span></td><td class="num">0</td><td class="num">8</td><td class="mono">%I8</td><td>Emergência (NF: 0 = acionada)</td><td>LED e alarme Alto</td></tr>
+      <tr><td class="num">8</td><td><code>sens_mesa</code> <span class="new">CRIAR</span></td><td class="num">0</td><td class="num">9</td><td class="mono">%I9</td><td>Sensor indutivo da mesa</td><td>LED</td></tr>
+      <tr><td class="num">9</td><td><code>fur_cima</code> <span class="new">CRIAR</span></td><td class="num">0</td><td class="num">10</td><td class="mono">%I10</td><td>Furadeira em cima</td><td>Posição da broca</td></tr>
+      <tr><td class="num">10</td><td><code>fur_baixo</code> <span class="new">CRIAR</span></td><td class="num">0</td><td class="num">11</td><td class="mono">%I11</td><td>Furadeira embaixo (furo concluído)</td><td>Posição da broca</td></tr>
+      <tr><td class="num">11</td><td><code>teste_baixo</code> <span class="new">CRIAR</span></td><td class="num">0</td><td class="num">13</td><td class="mono">%I13</td><td>Teste embaixo (peça furada)</td><td>Posição da haste</td></tr>
+      <tr><td class="num">12</td><td><code>peca_travada</code> <span class="new">CRIAR</span></td><td class="num">0</td><td class="num">15</td><td class="mono">%I15</td><td>Trava avançada</td><td>Posição da trava</td></tr>
+      <tr><td class="num">13</td><td><code>presenca</code> <span class="new">CRIAR</span></td><td class="num">0</td><td class="num">16</td><td class="mono">%I16</td><td>Peça na entrada</td><td>Peça visível na entrada</td></tr>
+      <tr><td class="num">14</td><td><code>Furadeira</code></td><td class="num">2</td><td class="num">1</td><td class="mono">%Q1</td><td>Motor da furadeira</td><td>XControl Furadeira</td></tr>
+      <tr><td class="num">15</td><td><code>Motor_mesa</code></td><td class="num">2</td><td class="num">2</td><td class="mono">%Q2</td><td>Motor da mesa</td><td>Rotação da mesa</td></tr>
+      <tr><td class="num">16</td><td><code>sol_desce_fur</code> <span class="new">CRIAR</span></td><td class="num">2</td><td class="num">3</td><td class="mono">%Q3</td><td>Solenoide de descida da furadeira</td><td>Seta de movimento</td></tr>
+      <tr><td class="num">17</td><td><code>sol_teste</code> <span class="new">CRIAR</span></td><td class="num">2</td><td class="num">5</td><td class="mono">%Q5</td><td>Solenoide de descida do teste</td><td>Haste descendo</td></tr>
+      <tr><td class="num">18</td><td><code>sol_trava</code> <span class="new">CRIAR</span></td><td class="num">2</td><td class="num">6</td><td class="mono">%Q6</td><td>Solenoide da trava</td><td>XControl Pistao</td></tr>
+      <tr><td class="num">19</td><td><code>CtPcFurado</code></td><td class="num">20</td><td class="num">100</td><td class="mono">%R100</td><td>Contador de peças furadas</td><td>Produção (peças)</td></tr>
+      <tr><td class="num">20</td><td><code>CtPcNFurado</code></td><td class="num">20</td><td class="num">104</td><td class="mono">%R104</td><td>Contador de peças não furadas</td><td>Produção (peças)</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Os 3 sinais que ficam de fora</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>Sinal</th><th>Por que pode sair</th><th>Como a tela supre</th></tr></thead>
+    <tbody>
+      <tr><td class="mono">%Q4 · sobe furadeira</td><td>A válvula é de duplo solenoide e só sobe quando não está descendo</td><td>Subida = <code>Furadeira</code> ligada, <code>sol_desce_fur</code> desligado e <code>fur_cima</code> desligado</td></tr>
+      <tr><td class="mono">%I12 · teste em cima</td><td>Complemento de %I13 com a haste parada</td><td>Haste em cima = <code>teste_baixo</code> e <code>sol_teste</code> desligados</td></tr>
+      <tr><td class="mono">%I14 · peça liberada</td><td>Complemento de %I15 com a trava parada</td><td>Liberada = <code>peca_travada</code> e <code>sol_trava</code> desligados</td></tr>
+    </tbody>
+  </table></div>
+  <p class="cap">Estes 3 são os que menos fazem falta. O %Q3 e o %I11 ficam porque o alarme de falha da furadeira depende deles. O %I13 fica porque é ele que decide se a peça foi furada.</p>
+  <p class="cap">Valores calculados (total, refugo, ciclo, estado, falhas e os parâmetros da receita) ficam como propriedades do XObject <code>ControleProducao</code>. Assim não usam tags do driver.</p>
+  <p class="cap">O driver está com P1 = 1 (COM1), P2 = 7 (19200 bps, CPU 90-30), P3 = 50 ms e P4 = 20 (0,2 s). No laboratório, confiram em qual COM o cabo aparece.</p>
+</section>
+
+<!-- ========== ROTEIRO ========== -->
+<section>
+  <h2>Ordem de implementação</h2>
+  <p>Os itens já feitos vêm marcados. As marcações que vocês fizerem ficam salvas só neste navegador. <span class="progress" id="prog"></span></p>
+  <ol class="steps" id="steps">
+    <li><h3>Botões e tags do driver</h3>
+      <label class="check"><input type="checkbox" id="r1" checked><span>Corrigir os scripts do XControl Botao (MouseDown e MouseUp) <span class="crit-tag">crit. 1, 4</span></span></label>
+      <label class="check"><input type="checkbox" id="r2" checked><span>Links bidirecionais de Start, Stop, Position, Reset, Quit e Chave <span class="crit-tag">crit. 1</span></span></label>
+      <label class="check"><input type="checkbox" id="r3" checked><span>Criar os 20 tags do driver <span class="crit-tag">crit. 1</span></span></label>
+    </li>
+    <li><h3>Painel de sinais</h3>
+      <label class="check"><input type="checkbox" id="r4" checked><span>XControl <code>TagsControle</code> (LED + rótulo) com uma instância por sinal <span class="crit-tag">crit. 1, 4</span></span></label>
+    </li>
+    <li><h3>XObject de produção</h3>
+      <label class="check"><input type="checkbox" id="r5" checked><span><code>ControleProducao</code> com Total e TaxaRefugo; instância <code>Producao</code> em Dados <span class="crit-tag">crit. 4</span></span></label>
+      <label class="check"><input type="checkbox" id="r6" checked><span>Displays de total (peças) e taxa de peças não furadas (%) <span class="crit-tag">crit. 1</span></span></label>
+    </li>
+    <li><h3>Alarmes</h3>
+      <label class="check"><input type="checkbox" id="r7" checked><span>Servidor e Configuração de Alarmes, área Processo <span class="crit-tag">crit. 3</span></span></label>
+      <label class="check"><input type="checkbox" id="r8" checked><span>Digital: emergência = 0, severidade Alta <span class="crit-tag">crit. 3</span></span></label>
+      <label class="check"><input type="checkbox" id="r9" checked><span>Analógico: TaxaRefugo Hi 10 % (Média) e HiHi 20 % (Alta) <span class="crit-tag">crit. 3</span></span></label>
+      <label class="check"><input type="checkbox" id="r10" checked><span>E3Alarm na tela com reconhecimento <span class="crit-tag">crit. 3</span></span></label>
+    </li>
+    <li><h3>Banco, histórico, consulta e gráfico</h3>
+      <label class="check"><input type="checkbox" id="r11"><span>Servidor de Banco de Dados com arquivo .mdb <span class="crit-tag">crit. 3</span></span></label>
+      <label class="check"><input type="checkbox" id="r12"><span>Objeto Histórico gravando contadores, total e taxa <span class="crit-tag">crit. 3</span></span></label>
+      <label class="check"><input type="checkbox" id="r13"><span>Alarmes gravados no banco <span class="crit-tag">crit. 3</span></span></label>
+      <label class="check"><input type="checkbox" id="r14"><span>TelaHistorico: consulta por período (E3Browser) e gráfico (E3Chart) <span class="crit-tag">crit. 3</span></span></label>
+    </li>
+    <li><h3>Sinótico completo</h3>
+      <label class="check"><input type="checkbox" id="r15"><span>Furadeira desce e sobe com <code>fur_baixo</code>; setas de descida e subida <span class="crit-tag">crit. 1</span></span></label>
+      <label class="check"><input type="checkbox" id="r16"><span>XControl Pistao com propriedade <code>Avancado</code>: trava e haste de teste <span class="crit-tag">crit. 1, 4</span></span></label>
+      <label class="check"><input type="checkbox" id="r17"><span>Peça na entrada com <code>presenca</code> <span class="crit-tag">crit. 1</span></span></label>
+      <label class="check"><input type="checkbox" id="r18"><span>Intertravamentos: Position só em Manual, Start e Quit só em Auto <span class="crit-tag">crit. 1</span></span></label>
+      <label class="check"><input type="checkbox" id="r19"><span>Limpar a tela: print colado, textos soltos, botões antigos <span class="crit-tag">crit. 1</span></span></label>
+    </li>
+    <li><h3>Relatório e receita</h3>
+      <label class="check"><input type="checkbox" id="r20"><span>E3Reports de produção com dados do histórico e alarmes do período <span class="crit-tag">crit. 3</span></span></label>
+      <label class="check"><input type="checkbox" id="r21"><span>Fórmula com meta de produção e limites, gravando no XObject <span class="crit-tag">crit. 4</span></span></label>
+    </li>
+    <li><h3>Usuários e permissões</h3>
+      <label class="check"><input type="checkbox" id="r22"><span>Grupos Operador e Supervisor, login na tela inicial <span class="crit-tag">crit. 2</span></span></label>
+      <label class="check"><input type="checkbox" id="r23"><span>Reset e receita só para Supervisor <span class="crit-tag">crit. 2</span></span></label>
+    </li>
+    <li><h3>Ensaio da demonstração</h3>
+      <label class="check"><input type="checkbox" id="r24"><span>Roteiro completo no laboratório, cronometrado <span class="crit-tag">crit. 5</span></span></label>
+      <label class="check"><input type="checkbox" id="r25"><span>Cada membro explica a própria parte e o sistema inteiro <span class="crit-tag">crit. 6</span></span></label>
+    </li>
+  </ol>
+</section>
+
+<!-- ========== RECEITAS DE CÓDIGO ========== -->
+<section>
+  <h2>Trechos para o E3</h2>
+  <p>Pontos de partida. Confiram os nomes dos objetos no projeto de vocês.</p>
+
+  <details>
+    <summary>XControl Chave: alternar o modo</summary>
+<pre>Sub Circulo1_Click()
+    Chave.Ligado = Not Chave.Ligado
+End Sub</pre>
+    <p class="cap">Com <code>Ligado</code> em link bidirecional para <code>Driver1.auto_manual</code>. Confiram no CLP qual valor corresponde a Auto.</p>
+  </details>
+
+  <details>
+    <summary>Intertravamento e permissão no Reset</summary>
+<pre>Sub XControl12_Click()
+    If Not Application.IsUserMemberOfGroup("Supervisor") Then
+        MsgBox "Somente o Supervisor pode zerar os contadores."
+        Exit Sub
+    End If
+    If MsgBox("Zerar os contadores de peças?", vbYesNo + vbQuestion) = vbYes Then
+        Application.GetObject("Driver1.reset").WriteEx 1
+        Application.GetObject("Driver1.reset").WriteEx 0
+    End If
+End Sub</pre>
+    <p class="cap">Se o Reset usar essa confirmação, tirem o link bidirecional dessa instância, para o clique não escrever duas vezes. Para Position, liguem <code>Enabled</code> à expressão do modo Manual.</p>
+  </details>
+
+  <details>
+    <summary>Login na tela inicial</summary>
+<pre>Sub BotaoEntrar_Click()
+    If Application.Login(True) Then
+        Application.GetFrame("").OpenScreen "QuadroPrincipal", 0
+    End If
+End Sub</pre>
+  </details>
+
+  <details>
+    <summary>XObject ControleProducao (versão usada)</summary>
+<pre>' Propriedades: Furadas, NaoFuradas, Total (Long), TaxaRefugo (Double)
+' Mesmo corpo nos eventos OnFuradasChanged e OnNaoFuradasChanged
+
+ControleProducao.Total = ControleProducao.Furadas + ControleProducao.NaoFuradas
+If ControleProducao.Total > 0 Then
+    ControleProducao.TaxaRefugo = Round(ControleProducao.NaoFuradas / ControleProducao.Total * 100, 1)
+Else
+    ControleProducao.TaxaRefugo = 0
+End If</pre>
+    <p class="cap">A instância se cria com clique direito em Dados (Servidor de Dados) → Inserir → ControleProducao, depois de salvar e registrar a biblioteca. Na tela o nome mostrado é "Taxa de peças não furadas"; internamente continua <code>TaxaRefugo</code>.</p>
+  </details>
+
+  <details>
+    <summary>Reconhecer alarmes na tela</summary>
+<pre>' Só se o reconhecimento do próprio E3Alarm não bastar.
+' Conferir o nome dos métodos na ajuda do E3Alarm.
+Sub BotaoReconhecer_Click()
+    Screen.Item("E3Alarm1").AckSelected
+End Sub
+
+Sub BotaoReconhecerTodos_Click()
+    Screen.Item("E3Alarm1").AckCurrentFilter
+End Sub</pre>
+  </details>
+
+  <details>
+    <summary>Consulta por período e relatório</summary>
+<pre>Sub BotaoConsultar_Click()
+    Set q = Screen.Item("E3Browser1").Item("Consulta1")
+    q.SetVariableValue "DataIni", Screen.Item("spDataInicial").Value
+    q.SetVariableValue "DataFim", Screen.Item("spDataFinal").Value
+    Screen.Item("E3Browser1").Requery
+End Sub
+
+Sub BotaoRelatorio_Click()
+    Set rel = Application.LoadReport("[RelProducao]")
+    rel.Query(0).SetVariableValue "DataIni", Screen.Item("spDataInicial").Value
+    rel.Query(0).SetVariableValue "DataFim", Screen.Item("spDataFinal").Value
+    rel.PrintPreview
+End Sub</pre>
+  </details>
+
+  <details>
+    <summary>Carregar uma receita</summary>
+<pre>Sub BotaoReceita_Click()
+    If Application.IsUserMemberOfGroup("Supervisor") Then
+        Application.GetObject("Parametros").LoadFormulaDlg
+    End If
+End Sub</pre>
+  </details>
+</section>
+
+<!-- ========== DEMO E ARGUIÇÃO ========== -->
+<section>
+  <h2>Demonstração e arguição</h2>
+  <div class="two">
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <h3>Roteiro da demonstração, cerca de 8 minutos</h3>
+      <ol class="steps">
+        <li>Login como Operador. Mostrar o quadro e o CLP online.</li>
+        <li>Login de Manutenção, modo Manual: Position gira 90°.</li>
+        <li>Modo Auto: Start, inserir peça, ciclo completo animado, contador sobe.</li>
+        <li><b>Cenário de alarme:</b> apertar a emergência. Aparece alarme Alto no banner, o operador reconhece, depois normaliza.</li>
+        <li>Histórico e gráfico do turno. Gerar o relatório.</li>
+        <li>Supervisor: carregar receita e zerar os contadores.</li>
+      </ol>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <h3>Divisão para a arguição</h3>
+      <div class="notes" style="grid-template-columns:1fr">
+        <div class="note"><b>A · Comunicação e sinótico</b>Driver SNP, tags, XControls, animações e intertravamentos.</div>
+        <div class="note"><b>B · Dados</b>Alarmes, banco, histórico, consultas e gráficos.</div>
+        <div class="note"><b>C · Gestão</b>Relatório, usuários e permissões, XObject e receitas.</div>
+      </div>
+      <p class="cap">Argumentos de IHM (ISA-101): fundo neutro e cor só no anormal, prioridade com cor e forma, hierarquia de telas, botões sempre na mesma posição, confirmação de ações críticas. Melhorias que podem propor: OEE, acesso pelo E3 WebViewer, receita por lote.</p>
+    </div>
+  </div>
+</section>
+
+</div>
+
+<script>
+(function(){
+  var tabs=[].slice.call(document.querySelectorAll('.tab'));
+  tabs.forEach(function(t){
+    t.addEventListener('click',function(){
+      tabs.forEach(function(o){
+        var on=o===t; o.setAttribute('aria-selected',on?'true':'false');
+        document.getElementById(o.getAttribute('aria-controls')).hidden=!on;
+      });
+    });
+  });
+  var KEY='estacao-furos-checklist-v2';
+  var saved={}; try{saved=JSON.parse(localStorage.getItem(KEY)||'{}')||{}}catch(e){}
+  var boxes=[].slice.call(document.querySelectorAll('#steps input[type=checkbox]'));
+  var prog=document.getElementById('prog');
+  function update(){
+    var n=0; boxes.forEach(function(b){ if(b.checked)n++; b.parentNode.classList.toggle('done',b.checked); });
+    prog.textContent=n+' de '+boxes.length+' itens concluídos.';
+  }
+  boxes.forEach(function(b){
+    if(Object.prototype.hasOwnProperty.call(saved,b.id))b.checked=!!saved[b.id];
+    b.addEventListener('change',function(){ saved[b.id]=b.checked; try{localStorage.setItem(KEY,JSON.stringify(saved))}catch(e){} update(); });
+  });
+  update();
+})();
+</script>
